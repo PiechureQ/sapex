@@ -2,6 +2,7 @@ const std = @import("std");
 const Loop = @import("loop.zig");
 const Tty = @import("tty.zig");
 const Window = @import("window.zig");
+const ShadowWindow = @import("window.zig").ShadowWindow;
 
 const Engine = @This();
 
@@ -11,16 +12,16 @@ allocator: std.mem.Allocator,
 should_quit: bool = false,
 loop: Loop,
 tty: *Tty,
-main_window: Window,
+sw: ShadowWindow,
 
 pub fn init(allocator: std.mem.Allocator, tty: *Tty) !Engine {
     const loop = try Loop.init(allocator, tty);
-    return .{ .allocator = allocator, .tty = tty, .loop = loop, .main_window = try Window.init(allocator, 1, 1) };
+    return .{ .allocator = allocator, .tty = tty, .loop = loop, .sw = ShadowWindow.init(allocator, .{ .w = 1, .h = 1 }) };
 }
 
 pub fn deinit(self: *Engine) void {
     self.loop.deinit();
-    self.main_window.deinit();
+    self.sw.deinit();
     self.loop.stop();
 }
 
@@ -29,13 +30,13 @@ pub fn getWinsize(self: *Engine) !Tty.Winsize {
     return winsize;
 }
 
-pub fn createWindow(self: *Engine, w: u16, h: u16) !*Window {
-    self.main_window = try Window.init(self.allocator, w, h);
-    return &self.main_window;
+pub fn createWindow(self: *Engine, w: u16, h: u16) *Window {
+    self.sw = ShadowWindow.init(self.allocator, .{ .w = @intCast(w), .h = @intCast(h) });
+    return &self.sw.window;
 }
 
 pub fn getWindow(self: *Engine) *Window {
-    return &self.main_window;
+    return &self.sw.window;
 }
 
 pub fn start(
@@ -54,9 +55,10 @@ pub fn write(self: *Engine) !void {
 
     var col: usize = 0;
     var row: usize = 0;
-    for (0..win.size) |i| {
+    const win_size = win.style.w * win.style.h;
+    for (0..win_size) |i| {
         row += 1;
-        if (row >= win.w) {
+        if (row >= win.style.w) {
             col += 1;
             row = 0;
         }

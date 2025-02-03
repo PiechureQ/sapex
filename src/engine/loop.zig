@@ -60,11 +60,6 @@ fn readInput(self: *Loop) !void {
         if (parsed) |event| {
             self.pushEvent(event);
         }
-
-        // if (std.mem.eql(u8, input, "q")) {
-        //     self.quit();
-        //     break;
-        // }
     }
 }
 

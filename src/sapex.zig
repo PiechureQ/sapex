@@ -93,7 +93,7 @@ fn onEvent(self: *Sapex, event: Event) !void {
 pub fn run(self: *Sapex) !void {
     try self.engine.start();
 
-    const window = try self.engine.createWindow(BOARD_W, BOARD_H);
+    const window = self.engine.createWindow(BOARD_W, BOARD_H);
 
     while (self.engine.isRunning()) {
         // handle user input
@@ -101,6 +101,7 @@ pub fn run(self: *Sapex) !void {
             try self.onEvent(user_event);
         }
 
+        // TODO rewrite this
         const board_buf = try self.board.draw();
         defer board_buf.allocator.free(board_buf.buffer);
         _ = try window.writeBuffer(board_buf.buffer);
@@ -114,6 +115,8 @@ pub fn run(self: *Sapex) !void {
         }
 
         try self.engine.write();
+
+        // TODO
 
         std.time.sleep(interval_ns);
     }

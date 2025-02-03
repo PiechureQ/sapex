@@ -26,5 +26,4 @@ pub fn main() !void {
     defer sapex.deinit();
 
     try sapex.run();
-    return;
 }
