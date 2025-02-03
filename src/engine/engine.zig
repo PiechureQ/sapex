@@ -20,6 +20,8 @@ pub fn init(allocator: std.mem.Allocator, tty: *Tty) !Engine {
 
 pub fn deinit(self: *Engine) void {
     self.loop.deinit();
+    self.main_window.deinit();
+    self.loop.stop();
 }
 
 pub fn getWinsize(self: *Engine) !Tty.Winsize {
@@ -72,5 +74,5 @@ pub fn isRunning(self: *Engine) bool {
 // TODO quit nie dziala od razu, poniewaz odpala sie Tty.read jeszcze zamin petla sie przerwie
 pub fn quit(self: *Engine) void {
     self.should_quit = true;
-    self.loop.stop();
+    // self.loop.stop();
 }

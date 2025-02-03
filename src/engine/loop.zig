@@ -19,7 +19,6 @@ pub fn init(allocator: std.mem.Allocator, tty: *Tty) !Loop {
 
 pub fn deinit(self: *Loop) void {
     self.stop();
-    self.tty.deinit();
     self.queue.clearAndFree();
 }
 

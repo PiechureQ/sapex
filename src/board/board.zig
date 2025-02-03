@@ -71,6 +71,10 @@ pub const Board = struct {
         return board;
     }
 
+    pub fn deinit(self: *Board) void {
+        self.allocator.free(self.fields);
+    }
+
     pub fn getPosIndex(self: *Board, x: i8, y: i8) !usize { // {{{
         if (x >= 0 and x < self.w and y >= 0 and y < self.h) {
             const fx: usize = @intCast(x);
@@ -101,14 +105,14 @@ pub const Board = struct {
         return &self.fields[i];
     } // }}}
 
-    pub fn draw(self: *Board) ![]u8 { // {{{
+    pub fn draw(self: *Board) !struct { buffer: []u8, allocator: std.mem.Allocator } {
         const d_board = try self.allocator.alloc(u8, self.fields.len);
         for (self.fields, 0..) |*field, i| {
             d_board[i] = field.draw()[0];
         }
 
-        return d_board;
-    } // }}}
+        return .{ .buffer = d_board, .allocator = self.allocator };
+    }
 
     pub fn isCompleted(self: *Board) bool { // {{{
         return getRemainingCount(self.fields) == 0;
@@ -125,7 +129,8 @@ pub const Board = struct {
 
         if (field.surrounds == 0 and field.flag == false) {
             const srd = self.getSurroundingIndexes(i) catch return;
-            for (srd) |srd_idx| {
+            defer srd.deinit();
+            for (srd.items) |srd_idx| {
                 self.expose(srd_idx);
             }
         }
@@ -135,7 +140,7 @@ pub const Board = struct {
         return @as(i8, @intCast(getMinesCount(self.fields))) - @as(i8, @intCast(getFlagged(self.fields)));
     }
 
-    fn getSurroundingIndexes(self: *Board, i: usize) ![]usize { // {{{
+    fn getSurroundingIndexes(self: *Board, i: usize) !ArrayList(usize) { // {{{
         const my_pos = try self.getIndexPos(i);
         var sr_idxs = ArrayList(usize).init(self.allocator);
         for (0..9) |_si| {
@@ -147,25 +152,27 @@ pub const Board = struct {
             const indexx = self.getPosIndex(my_pos.x + six, my_pos.y + siy) catch continue;
             try sr_idxs.append(indexx);
         }
-        return sr_idxs.items;
+        return sr_idxs;
     } // }}}
 
-    fn getSurrounding(self: *Board, i: usize) ![]Field { // {{{
+    fn getSurrounding(self: *Board, i: usize) !ArrayList(Field) { // {{{
         const sr_idxs = try self.getSurroundingIndexes(i);
+        defer sr_idxs.deinit();
 
         var surrounding = ArrayList(Field).init(self.allocator);
-        for (sr_idxs) |sidx| {
+        for (sr_idxs.items) |sidx| {
             try surrounding.append(self.getFieldByIndex(sidx).*);
         }
 
-        return surrounding.items;
+        return surrounding;
     }
 
     fn calculateSurrounding(self: *Board) void {
         // set fields surrounding count
         for (self.fields, 0..) |*field, i| {
             const surrounding = self.getSurrounding(i) catch continue;
-            field.surrounds = getMinesCount(surrounding);
+            defer surrounding.deinit();
+            field.surrounds = getMinesCount(surrounding.items);
         }
     } // }}}
 };

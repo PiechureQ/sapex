@@ -3,23 +3,21 @@ const Event = @import("loop.zig").Event;
 
 const Window = @This();
 
-buf: []u8,
+allocator: std.mem.Allocator,
+buf: [1000]u8 = [_]u8{0} ** 1000,
 w: u8,
 h: u8,
 size: usize,
 
 var on_event: ?*const fn (event: Event) void = null;
 
-fn createDef(allocator: std.mem.Allocator, w: u16, h: u16) ![]u8 {
-    const buffer = try allocator.alloc(u8, @intCast(w * h));
-    for (buffer) |*ch| {
-        ch.* = ' ';
-    }
-    return buffer;
+pub fn init(allocator: std.mem.Allocator, w: u16, h: u16) !Window {
+    return .{ .w = @intCast(w), .h = @intCast(h), .size = @intCast(w * h), .allocator = allocator };
 }
 
-pub fn init(allocator: std.mem.Allocator, w: u16, h: u16) !Window {
-    return .{ .w = @intCast(w), .h = @intCast(h), .size = @intCast(w * h), .buf = try createDef(allocator, w, h) };
+pub fn deinit(self: *Window) void {
+    _ = self;
+    // self.allocator.free(self.buf);
 }
 
 pub fn writeBuffer(self: *Window, buf: []u8) !usize {

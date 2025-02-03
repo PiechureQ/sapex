@@ -37,7 +37,7 @@ pub fn init(allocator: std.mem.Allocator, engine: *Engine) !Sapex {
 }
 
 pub fn deinit(self: *Sapex) void {
-    _ = self;
+    self.board.deinit();
 }
 
 fn onEvent(self: *Sapex, event: Event) !void {
@@ -67,6 +67,7 @@ fn onEvent(self: *Sapex, event: Event) !void {
             }
         },
         'r' => {
+            self.board.deinit();
             self.board = try Board.init(self.allocator, BOARD_W, BOARD_H, MINE_CNT);
             self.game_state = .on;
         },
@@ -101,12 +102,15 @@ pub fn run(self: *Sapex) !void {
         }
 
         const board_buf = try self.board.draw();
-        _ = try window.writeBuffer(board_buf);
+        defer board_buf.allocator.free(board_buf.buffer);
+        _ = try window.writeBuffer(board_buf.buffer);
         const cursor_buf = self.cursor.draw();
         const x = self.cursor.pos.x;
         const y = self.cursor.pos.y;
         if (x >= 0 and y >= 0) {
-            _ = try window.writeAt(@as(usize, @intCast(x)), @as(usize, @intCast(y)), try std.fmt.allocPrint(self.allocator, "{s}", .{cursor_buf}));
+            const formated = try std.fmt.allocPrint(self.allocator, "{s}", .{cursor_buf});
+            defer self.allocator.free(formated);
+            _ = try window.writeAt(@as(usize, @intCast(x)), @as(usize, @intCast(y)), formated);
         }
 
         try self.engine.write();
